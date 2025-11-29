@@ -1,0 +1,212 @@
+- type: picture-elements
+  image: >-
+    data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'
+    viewBox='0 0 1 1'%3E%3C/svg%3E
+  card_mod:
+    style: >
+      :host {
+        /* defaults: desktop / tablet */
+        --clock-size: 40dvw;
+
+        --alter-width: 20vw;
+        --alter-height: calc(var(--clock-size) * 1.02);
+        --alter-top: 4%;
+        --alter-right: 15px;
+        --alter-left: calc(var(--clock-size) + 100px);     
+        --y-portrait-extra: 70px;
+
+        --button-width: 140px;
+        --button-height: 50px;
+
+        --nav-left: 56px;
+        --nav-right: 4px;
+
+        --wachtkamer-height: 74%;
+        --main-top: 57px;
+        --main-left: 50px;       
+        --schrijfmethode: vertical-rl;
+        --tussenletters: 0.25em;
+        --my-dynamic-color: white;
+        --nav-font-size: clamp(11px, 1.2vw, 16px);
+        --track-height: 110%;
+        --track-width: 1.7vw;
+        --track-left: 48%;
+        --track-top: 45%;
+        --svg-height: 80%;
+        --svg-width: 70%;
+        --svg-left: 49%;
+        --svg-top: 60%;
+        --tic-height: 40dvh;
+        --tic-top: 40dvh;
+      }
+  elements
+    - type: custom:tailwindcss-template-card
+      view_layout:
+        grid-area: temperature
+      entities:
+        - climate.operatiekamer
+        - input_number.climate_set_operatiekamer
+      content: >
+        <ha-card class="flex items-center justify-center
+        bg-transparent shadow-none">
+          <!-- BLUE THERMOMETER CARD  -->
+          <div
+            class="
+              relative
+              flex flex-col items-center
+              rounded-[28px]
+              bg-gradient-to-b from-[#3f8df9] to-[#1f62d9]
+              shadow-none
+              py-4
+            "
+            style="
+              height: var(--alter-height);
+              width: 100%;
+            "
+          >
+            <!-- DIGITAL TEMPERATURE INSIDE THE CARD -->
+            <div
+              id="thermo-digital"
+              class="
+                font-mono
+                tracking-[0.18em]
+                text-white
+                text-4xl       
+                sm:text-2xl    
+                lg:text-6xl 
+                absolute
+                top-[.9rem]
+                left-[55%]
+                -translate-x-1/2
+              "
+            >
+                                      
+              {{
+                state_attr('climate.operatiekamer', 'current_temperature')
+                | float(15) | round(1)
+              }}°
+            </div>
+
+            <!-- MAIN AREA (SVG + slider) fills remaining height -->
+            <div class="relative flex items-center justify-center w-full flex-1">
+              <!-- SVG thermometer, stretched to ~80% of the card height -->
+              <img
+                id="thermo-svg"
+                src="/local/thermometer.svg"
+                alt="Thermometer"
+                class="pointer-events-none select-none"
+                style="
+                  position: absolute;
+                  width: var(--svg-width);
+                  height: var(--svg-height);
+                  top: var(--svg-top);
+                  left: var(--svg-left);
+                  transform: translate(-50%, -50%);
+                  max-height: calc(0.9 * var(--clock-size));
+                "
+              />
+
+              <!-- VERTICAL SLIDER OVER THE TUBE -->
+              <input
+                id="thermo-slider"
+                type="range"
+                min="15"
+                max="30"
+                step="0.5"
+                class="
+                  absolute
+                  bg-transparent
+                "
+                style="
+                  /* center on the tube */
+                  left: var(--track-left);
+                  top: var(--track-top);
+                  height: var(--track-width);
+                  width: var(--track-height); 
+                  transform: translate(-50%, -50%) rotate(-90deg);
+                  transform-origin: center;
+                "
+                value="{{ states('input_number.climate_set_operatiekamer') | float(15) }}"
+                oninput="
+                  const v = parseFloat(this.value);
+                  const digi = this.closest('ha-card').querySelector('#thermo-digital');
+                  if (digi) digi.textContent = v.toFixed(1) + '°';
+                "
+                onchange="
+                  const v = parseFloat(this.value);
+                  hass.callService('input_number','set_value',{
+                    entity_id: 'input_number.climate_set_operatiekamer',
+                    value: v
+                  });
+                "
+              />
+            </div>
+          </div>
+        </ha-card>
+
+
+        <style>
+          /* Base – normal horizontal slider, rotated via inline style */
+          #thermo-slider,
+          #time-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            cursor: pointer;
+            outline: none;
+            border: none;
+            background: transparent;
+          }
+
+          /* TRACK – pristine white “tube” */
+          #thermo-slider::-webkit-slider-runnable-track,
+          #time-slider::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 100%;
+            background: #ffffff;             /* pure white */
+            border-radius: 999px;
+            
+          }
+          #thermo-slider::-moz-range-track,
+          #time-slider::-moz-range-track {
+            width: 100%;
+            height: 100%;
+            background: #ffffff;
+            border-radius: 999px;
+            
+          }
+
+          /* THUMB – horizontal white bar, centered on the track, scales with card */
+          #thermo-slider::-webkit-slider-thumb,
+          #time-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: clamp(40px, 5vw, 70px);   /* knob length (scales with view) */
+            height: 50%;                    /* exactly track thickness */
+            background: #ffffff;             /* same pure white */
+            border-radius: 999px;
+            border: none;
+            box-shadow:
+              0 2px 4px rgba(0,0,0,0.25),
+              inset 0 1px 0 rgba(255,255,255,0.7);
+            transform: translateY(5px) rotate(90deg);        /* counter-rotate so it stays horizontal */
+            transform-origin: center;
+            margin: 0;                       /* keep centered */
+          }
+
+          #thermo-slider::-moz-range-thumb,
+          #time-slider::-moz-range-thumb {
+            width: clamp(40px, 5vw, 70px);
+            height: 50%;
+            background: #ffffff;
+            border-radius: 999px;
+            border: none;
+            box-shadow:
+              0 2px 4px rgba(0,0,0,0.25),
+              inset 0 1px 0 rgba(255,255,255,0.7);
+          }
+
+          #thermo-slider:focus,
+          #time-slider:focus {
+            outline: none;
+          }
+        </style>
